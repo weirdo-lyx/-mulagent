@@ -1,0 +1,32 @@
+# Python caches and environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+
+# Downloaded and generated experiment data
+data/raw/factscore/data.zip
+data/raw/factscore/release/
+data/processed/
+data/splits/
+
+# Future runtime artifacts
+.cache/
+outputs/
+results/
+*.log
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+

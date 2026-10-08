@@ -1,0 +1,14 @@
+{
+  "seed": 42,
+  "max_answers": 120,
+  "split_ratios": {
+    "train": 0.6,
+    "dev": 0.2,
+    "test": 0.2
+  },
+  "source_files": [
+    "ChatGPT.jsonl",
+    "InstructGPT.jsonl",
+    "PerplexityAI.jsonl"
+  ]
+}

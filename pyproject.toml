@@ -1,0 +1,9 @@
+[project]
+name = "factscore-risk-experiment"
+version = "0.1.0"
+description = "Leakage-safe data preparation for the multi-verifier FActScore experiment"
+requires-python = ">=3.12"
+
+[tool.unittest]
+start-directory = "tests"
+

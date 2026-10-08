@@ -1,0 +1,36 @@
+{
+  "dataset": "FActScore human annotations",
+  "official_repository": "https://github.com/shmsw25/FActScore",
+  "official_repository_commit_at_download": "f28272deffcf33efc1f1117d5479c10bb75221a9",
+  "official_announcement_url": "https://github.com/shmsw25/FActScore#announcement",
+  "official_drive_folder_url": "https://drive.google.com/drive/folders/1kFey69z8hGXScln01mVxrOhrqgM62X7I?usp=sharing",
+  "download_file_id": "155exEdKs7R21gZF4G-x54-XN3qswBcPo",
+  "download_url": "https://drive.usercontent.google.com/download?id=155exEdKs7R21gZF4G-x54-XN3qswBcPo&export=download&confirm=t",
+  "downloaded_at": "2026-10-08",
+  "archive": {
+    "path": "data/raw/factscore/data.zip",
+    "size_bytes": 2197467,
+    "sha256": "404482c9a7d588d581a2f7a78d609fe6bfec4ddc0f729c8560a61b1743dbffab"
+  },
+  "labeled_files": [
+    {
+      "path": "data/labeled/ChatGPT.jsonl",
+      "size_bytes": 1128530,
+      "sha256": "b58fe7113acc28dee8d3e6ee7e426bfdedaa293bba270f0977f568b9319e92d4"
+    },
+    {
+      "path": "data/labeled/InstructGPT.jsonl",
+      "size_bytes": 966123,
+      "sha256": "4ec1fa538a9f99606130c76db63d4af7f203ca460954a3edd7c4d0e385cd2d58"
+    },
+    {
+      "path": "data/labeled/PerplexityAI.jsonl",
+      "size_bytes": 1354199,
+      "sha256": "81ada151f2de8b7c205e3c15491e54b92d89bfb37b05366dca8b7a0486f109ff"
+    }
+  ],
+  "notes": [
+    "The official data.zip was downloaded without the separate Wikipedia database.",
+    "Raw files are inputs only; src/prepare_data.py never writes under data/raw."
+  ]
+}
