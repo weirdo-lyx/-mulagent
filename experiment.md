@@ -516,3 +516,4 @@ Refuting evidence: {{evidence_passages_with_ids}}
 | --- | --- | --- | --- |
 | 2026-10-08 | 完成研究方案和单文件实验执行手册 | 已检查章节、待办和提示词 | 第 1 步数据准备 |
 | 2026-10-08 | 完成第 1 步：从 FActScore 官方 `data.zip` 整理人工原子事实；生成统一 Claim、固定 topic 分组切分和数据报告；未下载 Wikipedia | `python -m unittest discover -s tests -v`：5 项通过；`python -m src.prepare_data --check-reproducibility`：通过。120 条回答按 72/24/24 切分，共 3743 条选中 Claim，topic 零重叠 | 第 2 步运行三个 Verifier；先由用户确认可用 API、预算和模型 |
+| 2026-10-08 | 初始化 Git 仓库并发布代码、配置、测试、研究文档、来源清单和数据报告；原始及生成数据由 `.gitignore` 排除 | `python -m unittest discover -s tests -v`：5 项通过；密钥特征扫描无命中；成功推送 `main` 到 `git@github.com:weirdo-lyx/-mulagent.git` | 第 2 步运行三个 Verifier；先由用户确认可用 API、预算和模型 |
