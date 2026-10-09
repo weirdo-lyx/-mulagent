@@ -1,0 +1,54 @@
+{
+  "prompt_version": "verifier-v3",
+  "max_attempts": 3,
+  "timeout_seconds": 120,
+  "min_interval_seconds": 1.0,
+  "seed": 42,
+  "verifiers": [
+    {
+      "verifier_id": "v1",
+      "provider": "openai_compatible",
+      "model": "deepseek-flash",
+      "model_env": "DEEPSEEK_MODEL",
+      "base_url_env": "DEEPSEEK_BASE_URL",
+      "base_url_default": "https://api.deepseek.com",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "temperature": 0,
+      "max_output_tokens": 256,
+      "output_token_field": "max_tokens",
+      "request_options": {"thinking": {"type": "disabled"}},
+      "pricing": {
+        "currency": "USD",
+        "input_per_million": 0.3,
+        "output_per_million": 1.2,
+        "basis": "2026-10-09 official peak rates, input cache miss",
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      }
+    },
+    {
+      "verifier_id": "v2",
+      "provider": "openai_compatible",
+      "model": "gpt-6.1-sol",
+      "model_env": "GPT_RELAY_MODEL",
+      "base_url_env": "GPT_RELAY_BASE_URL",
+      "base_url_default": "https://api.sbbbbbbbbb.xyz/v1",
+      "api_key_env": "GPT_RELAY_API_KEY",
+      "temperature": 0,
+      "max_output_tokens": 1024,
+      "output_token_field": "max_completion_tokens",
+      "pricing": null
+    },
+    {
+      "verifier_id": "v3",
+      "provider": "openai_compatible",
+      "model": "claude-sonnet-4-6",
+      "model_env": "CLAUDE_RELAY_MODEL",
+      "base_url_env": "CLAUDE_RELAY_BASE_URL",
+      "api_key_env": "CLAUDE_RELAY_API_KEY",
+      "temperature": 0,
+      "max_output_tokens": 1024,
+      "output_token_field": "max_tokens",
+      "pricing": null
+    }
+  ]
+}

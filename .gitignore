@@ -11,6 +11,7 @@ venv/
 .env
 .env.*
 !.env.example
+config/api.local.json
 
 # Downloaded and generated experiment data
 data/raw/factscore/data.zip
@@ -29,4 +30,3 @@ results/
 .vscode/
 .DS_Store
 Thumbs.db
-

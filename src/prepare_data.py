@@ -1,3 +1,8 @@
+"""第 1 步：只读 FActScore 人工标注，转换 Claim 并按人物/主题固定划分。
+
+所有随机操作使用配置种子；同一主题的不同来源回答始终进入同一集合。
+原始标签映射、排除数量、来源哈希和生成数据统计共同用于复核数据准备。
+"""
 from __future__ import annotations
 
 import argparse
@@ -11,6 +16,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 
+# 二值标签表示 Claim 是否错误：0 为正确，1 为错误，不表示模型是否判断正确。
 LABEL_MAP: dict[str, tuple[str, int]] = {
     "S": ("supported", 0),
     "NS": ("unsupported", 1),
@@ -21,11 +27,12 @@ SPLIT_NAMES = ("train", "dev", "test")
 
 
 class DataValidationError(ValueError):
-    """Raised when source or generated data violates a required invariant."""
+    """原始文件、配置或生成数据不符合实验要求时停止处理。"""
 
 
 @dataclass(frozen=True)
 class Config:
+    """固定随机种子、最大回答数、划分比例和允许读取的原始来源。"""
     seed: int
     max_answers: int
     split_ratios: dict[str, float]
@@ -34,6 +41,7 @@ class Config:
 
 @dataclass
 class PreparationStats:
+    """累计原始数量、来源标签和排除原因，避免清洗过程静默丢弃样本。"""
     raw_answers: int = 0
     raw_human_facts: int = 0
     source_label_counts: Counter[str] = field(default_factory=Counter)
@@ -44,6 +52,7 @@ class PreparationStats:
 
 @dataclass(frozen=True)
 class PreparedData:
+    """保存统一 Claim、分组划分及统计；所有内容都可由原始数据重建。"""
     all_claims: tuple[dict[str, Any], ...]
     splits: dict[str, tuple[dict[str, Any], ...]]
     split_topics: dict[str, tuple[str, ...]]
@@ -52,6 +61,7 @@ class PreparedData:
 
 
 def load_config(path: Path) -> Config:
+    """校验三份划分的比例及来源列表，然后构造不可变的准备配置。"""
     payload = read_json(path)
     ratios = payload.get("split_ratios")
     if not isinstance(ratios, dict) or set(ratios) != set(SPLIT_NAMES):
@@ -76,6 +86,7 @@ def load_config(path: Path) -> Config:
 
 
 def read_json(path: Path) -> dict[str, Any]:
+    """只读 JSON 配置或来源清单，要求顶层必须是对象。"""
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     if not isinstance(payload, dict):
@@ -84,6 +95,7 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def iter_jsonl(path: Path) -> Iterable[tuple[int, dict[str, Any]]]:
+    """只读逐行解析原始标注，并保留行号用于稳定 ID 和错误定位。"""
     with path.open("r", encoding="utf-8") as handle:
         for line_number, line in enumerate(handle, start=1):
             if not line.strip():
@@ -98,19 +110,23 @@ def iter_jsonl(path: Path) -> Iterable[tuple[int, dict[str, Any]]]:
 
 
 def normalize_text(value: str) -> str:
+    """统一大小写和连续空白，仅用于比较，不替换原始 Claim 文本。"""
     return " ".join(value.casefold().split())
 
 
 def model_name(source_file: str) -> str:
+    """从来源文件名提取原回答模型名，用于来源追踪。"""
     return Path(source_file).stem
 
 
 def model_slug(source_file: str) -> str:
+    """生成只含字母数字的来源 ID 片段，保证记录编号稳定。"""
     stem = model_name(source_file)
     return "".join(character.lower() for character in stem if character.isalnum())
 
 
 def extract_fact_candidates(record: Mapping[str, Any], stats: PreparationStats) -> list[tuple[int, str, str]]:
+    """提取人工原子事实及其原始顺序，累计空标注和非法对象等排除原因。"""
     annotations = record.get("annotations")
     if annotations is None:
         stats.exclusions["answers_with_null_annotations"] += 1
@@ -152,6 +168,7 @@ def extract_fact_candidates(record: Mapping[str, Any], stats: PreparationStats) 
 def deduplicate_candidates(
     candidates: Sequence[tuple[int, str, str]], stats: PreparationStats
 ) -> list[tuple[int, str, str]]:
+    """在同一回答内去重：同标签保留首条，标签冲突的重复组全部排除。"""
     grouped: dict[str, list[tuple[int, str, str]]] = defaultdict(list)
     for candidate in candidates:
         grouped[normalize_text(candidate[1])].append(candidate)
@@ -170,6 +187,7 @@ def deduplicate_candidates(
 
 
 def convert_sources(raw_labeled_dir: Path, config: Config) -> tuple[list[dict[str, Any]], PreparationStats]:
+    """读取允许的标注来源，转换为统一 Claim；未知或无关标签单独统计排除。"""
     stats = PreparationStats()
     claims: list[dict[str, Any]] = []
     seen_answer_ids: set[str] = set()
@@ -200,6 +218,7 @@ def convert_sources(raw_labeled_dir: Path, config: Config) -> tuple[list[dict[st
                 continue
             seen_source_topic.add(source_topic)
 
+            # ID 使用原始行号和事实序号；清洗排除其他记录后，已有 ID 也不会漂移。
             answer_id = f"factscore-{slug}-{line_number:06d}"
             if answer_id in seen_answer_ids:
                 raise DataValidationError(f"duplicate generated answer_id: {answer_id}")
@@ -235,6 +254,7 @@ def convert_sources(raw_labeled_dir: Path, config: Config) -> tuple[list[dict[st
 
 
 def allocate_counts(total: int, ratios: Mapping[str, float]) -> dict[str, int]:
+    """先取整数部分，再按最大余数分配剩余名额，确保三份数量合计等于总数。"""
     exact = {name: total * ratios[name] for name in SPLIT_NAMES}
     counts = {name: int(exact[name]) for name in SPLIT_NAMES}
     remainder = total - sum(counts.values())
@@ -247,6 +267,11 @@ def allocate_counts(total: int, ratios: Mapping[str, float]) -> dict[str, int]:
 def choose_and_split_topics(
     claims: Sequence[dict[str, Any]], config: Config
 ) -> tuple[dict[str, tuple[str, ...]], tuple[str, ...]]:
+    """只选各来源都有有效回答的主题，再按固定种子将完整主题分到三个集合。
+
+    max_answers 的单位是回答而非 Claim；一个主题包含多个来源模型的回答。
+    先按主题划分，可以防止同一人物的不同回答泄漏到训练和测试两边。
+    """
     answer_claim_counts: Counter[str] = Counter(row["answer_id"] for row in claims)
     topic_models: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
     for row in claims:
@@ -284,6 +309,7 @@ def choose_and_split_topics(
 def build_splits(
     claims: Sequence[dict[str, Any]], split_topics: Mapping[str, Sequence[str]]
 ) -> dict[str, tuple[dict[str, Any], ...]]:
+    """将已选主题对应的全部 Claim 放入其唯一集合，拒绝主题重复分配。"""
     topic_to_split: dict[str, str] = {}
     for split_name, topics in split_topics.items():
         for topic in topics:
@@ -300,6 +326,7 @@ def build_splits(
 
 
 def validate_claim_rows(rows: Sequence[Mapping[str, Any]], description: str) -> None:
+    """检查字段、唯一 ID、人工标签和二值标签一致性，拒绝空文本。"""
     required = {
         "answer_id",
         "claim_id",
@@ -328,6 +355,7 @@ def validate_claim_rows(rows: Sequence[Mapping[str, Any]], description: str) -> 
 
 
 def validate_prepared(data: PreparedData, config: Config) -> None:
+    """检查每份数据的真假标签均存在、主题和 Claim 零交叉，以及回答数限制。"""
     validate_claim_rows(data.all_claims, "claims.jsonl")
     all_claim_ids: set[str] = set()
     split_topic_sets: dict[str, set[str]] = {}
@@ -356,6 +384,7 @@ def validate_prepared(data: PreparedData, config: Config) -> None:
 
 
 def prepare(raw_labeled_dir: Path, config: Config) -> PreparedData:
+    """在内存中完成转换、分组划分和校验，不修改原始标注文件。"""
     claims, stats = convert_sources(raw_labeled_dir, config)
     split_topics, selected_topics = choose_and_split_topics(claims, config)
     splits = build_splits(claims, split_topics)
@@ -365,6 +394,7 @@ def prepare(raw_labeled_dir: Path, config: Config) -> PreparedData:
 
 
 def write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
+    """保持构造时的字段顺序，以 UTF-8 写出派生 JSONL，方便按字节核对可复现性。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         for row in rows:
@@ -373,6 +403,7 @@ def write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
 
 
 def split_summary(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """汇总单个集合的人物数、回答数、Claim 数及人工标签比例。"""
     label_counts = Counter(str(row["gold_label"]) for row in rows)
     claim_count = len(rows)
     return {
@@ -386,6 +417,7 @@ def split_summary(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
 
 
 def render_report(data: PreparedData, config: Config, manifest: Mapping[str, Any]) -> str:
+    """生成数据准备报告，列出来源、清洗、划分和无泄漏检查证据。"""
     summaries = {name: split_summary(data.splits[name]) for name in SPLIT_NAMES}
     selected_rows = [row for name in SPLIT_NAMES for row in data.splits[name]]
     selected_summary = split_summary(selected_rows)
@@ -469,6 +501,7 @@ def render_report(data: PreparedData, config: Config, manifest: Mapping[str, Any
 
 
 def write_outputs(root: Path, data: PreparedData, config: Config, manifest: Mapping[str, Any]) -> list[Path]:
+    """只写派生数据、划分清单与报告，返回产物路径用于哈希验证。"""
     paths = [root / "data" / "processed" / "claims.jsonl"]
     write_jsonl(paths[0], data.all_claims)
     for name in SPLIT_NAMES:
@@ -483,6 +516,7 @@ def write_outputs(root: Path, data: PreparedData, config: Config, manifest: Mapp
 
 
 def sha256(path: Path) -> str:
+    """分块读取文件内容计算 SHA-256，避免把原始压缩包整体加载进内存。"""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -491,6 +525,7 @@ def sha256(path: Path) -> str:
 
 
 def verify_reproducibility(root: Path, config: Config, manifest: Mapping[str, Any]) -> dict[str, str]:
+    """在临时目录重新生成同一批产物，并逐文件比较哈希，不覆盖工作区结果。"""
     raw_dir = root / "data" / "raw" / "factscore" / "release" / "data" / "labeled"
     results: list[dict[str, str]] = []
     with tempfile.TemporaryDirectory() as first_dir, tempfile.TemporaryDirectory() as second_dir:
@@ -504,6 +539,7 @@ def verify_reproducibility(root: Path, config: Config, manifest: Mapping[str, An
 
 
 def validate_source_manifest(root: Path, manifest: Mapping[str, Any]) -> None:
+    """只读核对原始压缩包和标注文件的大小、哈希，确保输入来源一致。"""
     archive = manifest.get("archive")
     if not isinstance(archive, dict):
         raise DataValidationError("manifest archive section is invalid")
@@ -521,6 +557,7 @@ def validate_source_manifest(root: Path, manifest: Mapping[str, Any]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """解析项目位置及是否额外执行独立重建检查。"""
     parser = argparse.ArgumentParser(description="Prepare leakage-safe FActScore claim splits")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--check-reproducibility", action="store_true")
@@ -528,6 +565,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """按来源核验、数据准备、派生文件写出和可选重现检查的顺序执行第 1 步。"""
     args = parse_args()
     root = args.root.resolve()
     config = load_config(root / "config" / "data_config.json")

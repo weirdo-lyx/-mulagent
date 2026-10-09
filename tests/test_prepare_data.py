@@ -1,3 +1,7 @@
+"""数据准备测试：检查清洗规则、固定主题划分、人工标签和真实数据验收。
+
+小型构造样本用于手算；真实数据测试只读取已生成的文件并验证无泄漏要求。
+"""
 from __future__ import annotations
 
 import json
@@ -21,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def annotation(*facts: tuple[str, str]) -> dict[str, object]:
+    """按 FActScore 的人工事实结构构造测试标注，不改变真实原始数据。"""
     return {
         "text": "sentence",
         "is-relevant": True,
@@ -29,6 +34,7 @@ def annotation(*facts: tuple[str, str]) -> dict[str, object]:
 
 
 class PrepareDataUnitTests(unittest.TestCase):
+    """使用小样本验证去重、冲突排除、数量分配与划分可复现性。"""
     def test_allocate_counts_uses_requested_ratio(self) -> None:
         self.assertEqual(
             allocate_counts(40, {"train": 0.6, "dev": 0.2, "test": 0.2}),
@@ -107,6 +113,7 @@ class PrepareDataUnitTests(unittest.TestCase):
 
 
 class RealDataTests(unittest.TestCase):
+    """只读检查本机真实数据；原始数据不在仓库时按既有条件跳过。"""
     def test_real_data_meets_step_one_acceptance_criteria(self) -> None:
         config = load_config(ROOT / "config" / "data_config.json")
         raw_dir = ROOT / "data" / "raw" / "factscore" / "release" / "data" / "labeled"

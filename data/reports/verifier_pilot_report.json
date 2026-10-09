@@ -1,0 +1,83 @@
+{
+  "prompt_version": "verifier-v3",
+  "seed": 42,
+  "claim_count": 10,
+  "training_gold_counts": {
+    "supported": 8,
+    "unsupported": 2
+  },
+  "verifiers": [
+    {
+      "id": "v1",
+      "model": "deepseek-flash",
+      "response_models": [
+        "deepseek-flash"
+      ],
+      "format_valid": 10,
+      "labels": {
+        "uncertain": 4,
+        "supported": 6
+      },
+      "training_gold_label_matches": 6,
+      "uncertain": 4,
+      "max_reason_characters": 26,
+      "mean_elapsed_seconds": 0.969,
+      "token_usage": {
+        "input_tokens": 2343,
+        "output_tokens": 305
+      }
+    },
+    {
+      "id": "v2",
+      "model": "gpt-6.1-sol",
+      "response_models": [
+        "gpt-6.1-sol"
+      ],
+      "format_valid": 10,
+      "labels": {
+        "supported": 10
+      },
+      "training_gold_label_matches": 8,
+      "uncertain": 0,
+      "max_reason_characters": 32,
+      "mean_elapsed_seconds": 3.519,
+      "token_usage": {
+        "input_tokens": 47015,
+        "output_tokens": 333
+      }
+    },
+    {
+      "id": "v3",
+      "model": "claude-sonnet-4-6",
+      "response_models": [
+        "claude-sonnet-4-6"
+      ],
+      "format_valid": 10,
+      "labels": {
+        "supported": 6,
+        "uncertain": 3,
+        "unsupported": 1
+      },
+      "training_gold_label_matches": 6,
+      "uncertain": 3,
+      "max_reason_characters": 30,
+      "mean_elapsed_seconds": 3.306,
+      "token_usage": {
+        "input_tokens": 3209,
+        "output_tokens": 432
+      }
+    }
+  ],
+  "format_passed": true,
+  "full_run_started": false,
+  "current_turn_transport_attempts": 55,
+  "claims_with_disagreement": 4,
+  "credential_scan_passed": true,
+  "dataset_split_counts": {
+    "train": 2306,
+    "dev": 705,
+    "test": 732
+  },
+  "full_logical_judgments": 11229,
+  "small_sample_not_population_accuracy": true
+}
